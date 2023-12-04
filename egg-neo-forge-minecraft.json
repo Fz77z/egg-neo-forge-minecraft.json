@@ -1,0 +1,49 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2023-12-04T13:01:35+00:00",
+    "name": "NeoForge Minecraft",
+    "author": "kvm@gmx.com",
+    "description": "NeoForge is a modding tool for Minecraft, designed to enhance the game's modding capabilities. It allows players and developers to create and integrate new items, blocks, and mechanics into Minecraft, facilitating more complex and customized gameplay experiences.",
+    "features": [
+        "eula",
+        "java_version",
+        "pid_limit"
+    ],
+    "docker_images": {
+        "Java 17": "ghcr.io\/pterodactyl\/yolks:java_17",
+        "Java 16": "ghcr.io\/pterodactyl\/yolks:java_16",
+        "Java 11": "ghcr.io\/pterodactyl\/yolks:java_11",
+        "Java 8": "ghcr.io\/pterodactyl\/yolks:java_8"
+    },
+    "file_denylist": [],
+    "startup": "java -Xms128M -XX:MaxRAMPercentage=95.0 -Dterminal.jline=false -Dterminal.ansi=true $(([[ -f {{SERVER_JARFILE}} ]] && printf %s \"$( [[  ! -f unix_args.txt ]] && printf %s \"$( [[  ! -f unix_args.txt ]] && printf %s \"-jar {{SERVER_JARFILE}}\" || printf %s \"@unix_args.txt\" )\" || printf %s \"@unix_args.txt\" )\") || (printf \"@libraries\/net\/neoforged\/neoforge\/`ls libraries\/net\/neoforged\/neoforge | sort -nr | awk 'NR==1'`\/unix_args.txt\"))",
+    "config": {
+        "files": "{\r\n    \"server.properties\": {\r\n        \"parser\": \"properties\",\r\n        \"find\": {\r\n            \"server-ip\": \"0.0.0.0\",\r\n            \"server-port\": \"{{server.build.default.port}}\",\r\n            \"query.port\": \"{{server.build.default.port}}\"\r\n        }\r\n    }\r\n}",
+        "startup": "{\r\n    \"done\": \")! For help, type \"\r\n}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!\/bin\/bash\r\n# NeoForge Installation Script\r\n#\r\n# Server Files: \/mnt\/server\r\n\r\n# Function to handle errors\r\nerror_exit() {\r\n  echo \"!!! $1 !!!\"\r\n  exit 1\r\n}\r\n\r\n# Function to detect package manager and install packages\r\ninstall_packages() {\r\n  if command -v apt-get >\/dev\/null 2>&1; then\r\n    apt-get update || error_exit \"Failed to update packages\"\r\n    apt-get install -y curl jq libxml2-utils || error_exit \"Failed to install required packages\"\r\n  elif command -v yum >\/dev\/null 2>&1; then\r\n    yum install -y curl jq libxml2 || error_exit \"Failed to install required packages\"\r\n  elif command -v dnf >\/dev\/null 2>&1; then\r\n    dnf install -y curl jq libxml2 || error_exit \"Failed to install required packages\"\r\n  elif command -v pacman >\/dev\/null 2>&1; then\r\n    pacman -Sy --noconfirm curl jq libxml2 || error_exit \"Failed to install required packages\"\r\n  else\r\n    error_exit \"Package manager not supported\"\r\n  fi\r\n}\r\n\r\n# Install necessary packages\r\ninstall_packages\r\n\r\n# Ensure server directory exists\r\nif [[ ! -d \/mnt\/server ]]; then\r\n  mkdir \/mnt\/server || error_exit \"Failed to create \/mnt\/server directory\"\r\nfi\r\n\r\ncd \/mnt\/server || error_exit \"Failed to navigate to \/mnt\/server\"\r\n\r\n# Check if NEOFORGE_VERSION_OVERRIDE is set and not empty\r\nif [[ -n \"$NEOFORGE_VERSION_OVERRIDE\" ]]; then\r\n  NEOFORGE_VERSION=\"$NEOFORGE_VERSION_OVERRIDE\"\r\nelse\r\n  # Fetch and parse the latest version from the XML\r\n  XML_DATA=$(curl -sSL https:\/\/maven.neoforged.net\/releases\/net\/neoforged\/neoforge\/maven-metadata.xml) || error_exit \"Failed to fetch XML data\"\r\n  NEOFORGE_VERSION=$(echo \"$XML_DATA\" | xmllint --xpath 'string(\/metadata\/versioning\/latest)' - | tr -d ' ') || error_exit \"Failed to parse NeoForge version\"\r\nfi\r\n\r\n# Check if the version was determined successfully\r\n[[ -z \"$NEOFORGE_VERSION\" ]] && error_exit \"Failed to determine NeoForge version\"\r\n\r\n# Construct the download link\r\nDOWNLOAD_LINK=\"https:\/\/maven.neoforged.net\/releases\/net\/neoforged\/neoforge\/${NEOFORGE_VERSION}\/neoforge-${NEOFORGE_VERSION}-installer.jar\"\r\n\r\n# Downloading jars\r\necho -e \"Downloading NeoForge version ${NEOFORGE_VERSION}\"\r\necho -e \"Download link is ${DOWNLOAD_LINK}\"\r\n\r\ncurl -s -o installer.jar -sS ${DOWNLOAD_LINK} || error_exit \"Error downloading NeoForge installer\"\r\n\r\n# Check if the installer.jar was downloaded successfully\r\n[[ ! -f .\/installer.jar ]] && error_exit \"Installer jar not found\"\r\n\r\n# Installing server\r\necho -e \"Installing NeoForge server.\\n\"\r\njava -jar installer.jar --installServer || error_exit \"Install failed using NeoForge version ${NEOFORGE_VERSION}\"\r\n\r\n# Cleanup\r\nrm -rf installer.jar\r\necho -e \"Installation process is completed\"",
+            "container": "openjdk:8-jdk-slim",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "NeoForge Version",
+            "description": "Define a specific version of NeoForge if required.",
+            "env_variable": "NEOFORGE_VERSION_OVERRIDE",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|regex:\/^[0-9\\.\\-]+$\/",
+            "field_type": "text"
+        }
+    ]
+}
